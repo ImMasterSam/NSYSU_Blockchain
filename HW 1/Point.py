@@ -27,7 +27,8 @@ class Point:
         
     # Equal Overloading
     def __eq__(self, other: Point) -> bool:
-        return self.x == other.x and self.y == other.y and self.a == other.a and self.b == other.b
+        return self.x == other.x and self.y == other.y \
+               and self.a == other.a and self.b == other.b
     
     # Addition Overloading
     def __add__(self, other: Point) -> Point:
