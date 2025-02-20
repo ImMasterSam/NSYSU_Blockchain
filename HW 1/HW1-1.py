@@ -21,5 +21,4 @@ P3_1 = FieldElement(337, PRIME)
 P3_2 = FieldElement(557, PRIME)
 P3_3 = P3_1 ** 79
 P3_4 = P3_2 ** 131
-
 print('1-3. ', P3_3 * P3_4)

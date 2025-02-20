@@ -1,2 +1,4 @@
 **/__pycache__/
+**/Screenshots/
 *.docx
+test.py
