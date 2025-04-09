@@ -45,13 +45,25 @@ class FieldElement:
         num = (self.num - other.num) % self.prime
         return self.__class__(num, self.prime)
     
-    # Multiplication Overloading
-    def __mul__(self, other: FieldElement) -> FieldElement:
+    # Multiplication Overloading (Left)
+    def __mul__(self, other) -> FieldElement:
+
+        if isinstance(other, int):
+            return self * self.__class__(other, self.prime)
 
         if self.prime != other.prime:
             raise TypeError('Cannot multiply two numbers in different Fields')
+        
         num = (self.num * other.num) % self.prime
         return self.__class__(num, self.prime)
+    
+    # Multiplication Overloading (Right)
+    def __rmul__(self, other) -> FieldElement:
+
+        if isinstance(other, int):
+            return self * self.__class__(other, self.prime)
+        else:
+            return self * other
     
     # Division Overloading
     def __truediv__(self, other: FieldElement) -> FieldElement:

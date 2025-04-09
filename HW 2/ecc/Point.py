@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fractions import Fraction
+from ecc.FieldElement import *
 
 class Point:
 
@@ -20,7 +20,13 @@ class Point:
 
     # Representation
     def __repr__(self) -> str:
-        return f'Point({self.x},{self.y})_{self.a}_{self.b}'
+
+        if self.x is None and self.y is None:
+            return 'Point(infinity)'
+        elif isinstance(self.a, FieldElement):
+            return f'Point({self.x.num},{self.y.num})_{self.a.num}_{self.b.num} FieldElement({self.a.prime})'
+        else:
+            return f'Point({self.x},{self.y})_{self.a}_{self.b}'
         
     # Equal Overloading
     def __eq__(self, other: Point) -> bool:
@@ -44,12 +50,12 @@ class Point:
         # P1 == P2
         if self == other:
             # Special Case:
-            if self.y == 0:
+            if self.y == 0 * self.x:
                 return self.__class__(None, None, self.a, self.b)
-            s = (3 * self.x**2 + self.a) / (2 * self.y)
-        
+            else:
+                s = (3 * self.x**2 + self.a) / (2 * self.y)
         # x1 != x2
-        if self.x != other.x:
+        elif self.x != other.x:
             s = (self.y - other.y) / (self.x - other.x)
         # x1 == x2
         else:
@@ -64,6 +70,7 @@ class Point:
         coef = coefficient
         currrent = self
         result = self.__class__(None, None, self.a, self.b)
+        
         while coef:
             if coef & 1:
                 result += currrent
