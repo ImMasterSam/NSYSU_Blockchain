@@ -37,6 +37,10 @@ class S256Point(Point):
         else:
             super().__init__(x = x, y = y, a = a, b = b)
 
+    # Representation
+    def __repr__(self):
+        return f'S256Point({hex(self.x.num)}, {hex(self.y.num)})'
+
     # Multiplication Overloading (Right)
     # Mod coef to make sure coef is within N
     def __rmul__(self, coefficient) -> Point:
@@ -72,7 +76,7 @@ class PrivateKey:
         self.point = secret * G     # Public Key
 
     # Return private key in hex Format
-    def hex(self):
+    def hex(self) -> str:
         return f'{self.secret}'.zfill(64)
     
     # Create a Signature
