@@ -117,8 +117,8 @@ class Signature:
 
     # Constructor
     def __init__(self, r, s):
-        self.r: S256Field = r
-        self.s: S256Field = s
+        self.r: int = r
+        self.s: int = s
 
     # Representation
     def __repr__(self) -> str:
@@ -126,20 +126,20 @@ class Signature:
     
     # Returns the binary version of the DER format
     def der(self) -> bytes:
-        rbin = self.r.num.to_bytes(32, byteorder = 'big')
+        rbin = self.r.to_bytes(32, byteorder = 'big')
         rbin = rbin.lstrip(b'\x00')
         # if rbin has high bit, add a \x00
         if rbin[0] & 0x80:
             rbin = b'\x00' + rbin
         result = bytes([2, len(rbin)]) + rbin
 
-        sbin = self.s.num.to_bytes(32, byteorder = 'big')
+        sbin = self.s.to_bytes(32, byteorder = 'big')
         sbin = sbin.lstrip(b'\x00')
         # if sbin has high bit, add a \x00
         if sbin[0] & 0x80:
             sbin = b'\x00' + sbin
         result += bytes([2, len(rbin)]) + sbin
-        return bytes[0x30, len(result)] + result
+        return bytes([0x30, len(result)]) + result
     
     
 class PrivateKey:
@@ -196,6 +196,6 @@ class PrivateKey:
         if compressed:
             suffix = b'\x01'
         else:
-            suffix = ''
+            suffix = b''
 
         return encode_base58_checksum(prefix + secret_bytes + suffix)
