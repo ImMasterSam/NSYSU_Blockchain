@@ -21,6 +21,10 @@ class S256Field(FieldElement):
     def __init__(self, num, prime = None):
         super().__init__(num = num, prime = P)
 
+    # Return square root in S256 field
+    def sqrt(self):
+        return self**((P + 1) // 4)
+
 class S256Point(Point):
     '''
     The Point under secp256k1 curve
@@ -54,26 +58,80 @@ class S256Point(Point):
         v = (sig.r * s_inv) % N   
         total = u * G + v * self
         return total.x.num == sig.r
+
+    # Returns the binary version of the SEC format
+    def sec(self, compressed = True) -> bytes:
+        if compressed:
+            if self.y.num % 2 == 0:
+                return b'\x02' + self.x.num.to_bytes(32, 'big')
+            else:
+                return b'\x03' + self.x.num.to_bytes(32, 'big')
+        else:
+            return b'\x04' + self.x.num.to_bytes(32, 'big') + self.y.num.to_bytes(32, 'big')
+        
+    # Decode a serialized SEC publickey
+    @classmethod
+    def parse(self, sec_bin: bytes) -> S256Point:
+        #Uncompressed
+        if sec_bin[0] == 4:
+            x = int.from_bytes(sec_bin[1:33], 'big')
+            y = int.from_bytes(sec_bin[33:65], 'big')
+            return S256Point(x, y)
+        # Compressed
+        else:
+            is_even = sec_bin[0] == 2
+            x = int.from_bytes(sec_bin[1:], 'big')
+            alpha: S256Field = x**3 + S256Field(B)
+            beta: S256Field  = alpha.sqrt()
+
+            if beta.num % 2 == 0:
+                if is_even:
+                    return S256Point(x, beta)
+                else:
+                    return S256Point(x, S256Field(P - beta.num))
+            else:
+                if is_even:
+                    return S256Point(x, S256Field(P - beta.num))
+                else:
+                    return S256Point(x, beta)
     
+
 G = S256Point(Gx, Gy)
     
 class Signature:
 
     # Constructor
     def __init__(self, r, s):
-        self.r = r
-        self.s = s
+        self.r: S256Field = r
+        self.s: S256Field = s
 
     # Representation
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Signature({self.r}, {self.s})'
+    
+    # Returns the binary version of the DER format
+    def der(self) -> bytes:
+        rbin = self.r.num.to_bytes(32, byteorder = 'big')
+        rbin = rbin.lstrip(b'\x00')
+        # if rbin has high bit, add a \x00
+        if rbin[0] & 0x80:
+            rbin = b'\x00' + rbin
+        result = bytes([2, len(rbin)]) + rbin
+
+        sbin = self.s.num.to_bytes(32, byteorder = 'big')
+        sbin = sbin.lstrip(b'\x00')
+        # if sbin has high bit, add a \x00
+        if sbin[0] & 0x80:
+            sbin = b'\x00' + sbin
+        result += bytes([2, len(rbin)]) + sbin
+        return bytes[0x30, len(result)] + result
     
 class PrivateKey:
 
     # Constructor
     def __init__(self, secret):
-        self.secret = secret        # Private Key
-        self.point = secret * G     # Public Key
+        self.secret = secret                    # Private Key
+        self.point: S256Point = secret * G      # Public Key
 
     # Return private key in hex Format
     def hex(self) -> str:

@@ -1,8 +1,5 @@
 from ecc.S256 import *
-
-def hash256(s):
-    '''Two rounds of sha256'''
-    return hashlib.sha256(hashlib.sha256(s).digest()).digest()
+from helper.tools import *
 
 e = 1234567
 z = int.from_bytes(hash256(b'Introduction to Bitcoin homework 2.2'), 'big')
