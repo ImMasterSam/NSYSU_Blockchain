@@ -24,3 +24,11 @@ def encode_base58(s: bytes) -> str:
         result = BASE58_ALPHABET[mod] + result
 
     return prefix + result
+
+def hash160(s: bytes) -> bytes:
+    '''SHA256 folllowed by RIPEMD160'''
+    return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
+
+def encode_base58_checksum(b: bytes) -> bytes:
+    '''Return the encoded format of the address'''
+    return encode_base58(b + hash256(b)[:4])

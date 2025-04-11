@@ -3,6 +3,7 @@ import hashlib, hmac
 
 from ecc.FieldElement import *
 from ecc.Point import *
+from helper.tools import *
 
 A = 0
 B = 7
@@ -94,6 +95,20 @@ class S256Point(Point):
                     return S256Point(x, S256Field(P - beta.num))
                 else:
                     return S256Point(x, beta)
+                
+    # Return the hash160 version for the public key
+    def hash160(self, compressed = True) -> bytes:
+        return hash160(self.sec(compressed))
+    
+    # Return the address string of the public key
+    def address(self, compressed = True, testnet = False) -> str:
+        h160 = self.hash160(compressed)
+        if testnet:
+            prefix = b'\x6f'
+        else:
+            prefix = b'\x00'
+        return encode_base58_checksum(prefix + h160)
+        
     
 
 G = S256Point(Gx, Gy)
@@ -126,11 +141,12 @@ class Signature:
         result += bytes([2, len(rbin)]) + sbin
         return bytes[0x30, len(result)] + result
     
+    
 class PrivateKey:
 
     # Constructor
     def __init__(self, secret):
-        self.secret = secret                    # Private Key
+        self.secret: int = secret                    # Private Key
         self.point: S256Point = secret * G      # Public Key
 
     # Return private key in hex Format
@@ -168,4 +184,18 @@ class PrivateKey:
             k = hmac.new(k, v + b'\x00', s256).digest()
             v = hmac.new(k, v, s256).digest()
     
+    # Return the WIF format of the private key
+    def wif(self, compressed = True, testnet = False) -> str:
+        secret_bytes = self.secret.to_bytes(32, 'big')
 
+        if testnet:
+            prefix = b'\xef'
+        else:
+            prefix = b'\x80'
+        
+        if compressed:
+            suffix = b'\x01'
+        else:
+            suffix = ''
+
+        return encode_base58_checksum(prefix + secret_bytes + suffix)
