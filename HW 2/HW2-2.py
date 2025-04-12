@@ -11,6 +11,4 @@ s = ((z + r*e) * k_inv) % N
 point = e * G
 
 print(point)
-print(hex(z))
-print(hex(r))
-print(hex(s))
+print('z = ', hex(z))

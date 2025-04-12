@@ -109,7 +109,6 @@ class S256Point(Point):
             prefix = b'\x00'
         return encode_base58_checksum(prefix + h160)
         
-    
 
 G = S256Point(Gx, Gy)
     

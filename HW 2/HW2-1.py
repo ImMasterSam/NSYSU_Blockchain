@@ -9,6 +9,12 @@ s  = 0x22afcd685b7c0c8b525c2a52529423fcdff22f69f3e9c175ac9cb3ec08de87d8
 sig = Signature(r, s)
 point = S256Point(Px, Py)
 
+print("Px = ", hex(Px))
+print("Py = ", hex(Py))
+print("z  = ", hex(z))
+print("r  = ", hex(r))
+print("s  = ", hex(s))
+
 if point.verify(z, sig):
     print("The signature is valid")
 else:
