@@ -1,4 +1,5 @@
 import hashlib
+from io import BytesIO
 
 def hash256(s):
     '''Two rounds of sha256'''
@@ -32,3 +33,41 @@ def hash160(s: bytes) -> bytes:
 def encode_base58_checksum(b: bytes) -> bytes:
     '''Return the encoded format of the address'''
     return encode_base58(b + hash256(b)[:4])
+
+# Transactions Part
+
+def little_endian_to_int(b: bytes) -> int:
+    '''
+    little_endian_to_int takes a byte sequence as a little-endian number.
+    Returns an integer.
+    '''
+    return int.from_bytes(b, 'little')
+
+def read_varint(s: BytesIO) -> int:
+    '''read_varint reads a variable integer from the stream'''
+    i = s.read(1)[0]
+    if i == 0xfd:
+        # 0xfd means the next two bytes are the number
+        return little_endian_to_int(s.read(2))
+    elif i == 0xfe:
+        # 0xfe means the next four bytes are the number
+        return little_endian_to_int(s.read(4))
+    elif i == 0xff:
+        # 0xff means the next eight bytes are the number
+        return little_endian_to_int(s.read(8))
+    else:
+        # Anything else is just the integer itself
+        return i
+    
+def encode_varint(i: int) -> bytes:
+    '''envode integer as a varint'''
+    if i < 0xfd:
+        return bytes([i])
+    elif i < 0x10000:
+        return b'\xfd' + i.to_bytes(2, 'little')
+    elif i < 0x100000000:
+        return b'\xfe' + i.to_bytes(4, 'little')
+    elif i < 0x10000000000000000:
+        return b'\xff' + i.to_bytes(8, 'little')
+    else:
+        raise ValueError(f'Integer too large: {i}')
