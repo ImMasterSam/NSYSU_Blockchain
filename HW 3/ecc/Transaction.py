@@ -1,6 +1,7 @@
 from __future__ import annotations
 from helper.tools import *
 from io import BytesIO
+import requests
 
 class Tx:
 
@@ -54,6 +55,15 @@ class Tx:
             result += tx_out.serialize()
         result += self.locktime.to_bytes(4, 'little')
         return result
+    
+    def fee(self, testnet: bool = False) -> int:
+        '''Returns the transaction fee'''
+        input_sum, output_sum = 0, 0
+        for tx_in in self.tx_ins:
+            input_sum += tx_in.value(testnet)
+        for tx_out in self.tx_outs:
+            output_sum += tx_out.amount
+        return input_sum - output_sum
 
 class TxIn:
     def __init__(self, prev_tx: bytes, prev_index: int, script_sig: bytes = None, sequence: int = 0xffffffff):
@@ -94,6 +104,26 @@ class TxIn:
         result += self.sequence.to_bytes(4, 'little')
         return result
     
+    def fetch_tx(self, testnet: bool = False) -> Tx:
+        '''Use the TxFetcher class to fetch the transaction'''
+        return TxFetcher.fetch(self.prev_tx.hex(), testnet)
+    
+    def value(self, testnet: bool = False) -> int:
+        '''
+        Get the output value by looking up the tx hash.
+        Return the amount in satoshis.
+        '''
+        tx = self.fetch_tx(testnet)
+        return tx.tx_outs[self.prev_index].amount
+    
+    def script_pubkey(self, testnet: bool = False) -> Script:
+        '''
+        Get the ScriptPubKey by looking up the tx hash.
+        Return the Script object.
+        '''
+        tx = self.fetch_tx(testnet)
+        return tx.tx_outs[self.prev_index].script_pubkey
+    
 class TxOut:
 
     def __init__(self, amount: int, script_pubkey: bytes = None):
@@ -122,3 +152,39 @@ class TxOut:
         result = self.amount.to_bytes(8, 'little')
         result += self.script_pubkey.serialize()
         return result
+    
+class TxFetcher:
+    cache: set[str] = {}
+
+    @classmethod
+    def get_url(cls, testnet: bool = False) -> str:
+        if testnet:
+            return 'https://blockstream.info/testnet/api/'
+        else:
+            return 'https://blockstream.info/api/'
+        
+    @classmethod
+    def fetch(cls, tx_id: str, testnet: bool = False, fresh: bool = False) -> Tx:
+        if fresh or (tx_id not in cls.cache):
+            url = f'{cls.get_url(testnet)}/tx/{tx_id}/hex'
+            response = requests.get(url)
+
+            try:
+                raw = bytes.fromhex(response.text.strip())
+            except ValueError:
+                raise ValueError(f'Unexpected response: {response.text}')
+            
+            if raw[4] == 0:
+                raw = raw[:4] + raw[5:]
+                tx = Tx.parse(BytesIO(raw), testnet)
+                tx.locktime = little_endian_to_int(raw[-4:])
+            else:
+                tx = Tx.parse(BytesIO(raw), testnet)
+
+            if tx.id() != tx_id:
+                raise ValueError(f'Not the same id : {tx.id()} vs {tx_id}')
+
+            cls.cache[tx_id] = tx
+
+        cls.cache[tx_id].testnet = testnet
+        return cls.cache[tx_id]        
