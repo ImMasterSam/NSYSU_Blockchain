@@ -1,7 +1,10 @@
 from __future__ import annotations
-from helper.tools import *
+from ecc.Script import Script
 from io import BytesIO
 import requests
+
+from ecc.S256 import PrivateKey
+from helper.tools import *
 
 class Tx:
 
@@ -64,9 +67,59 @@ class Tx:
         for tx_out in self.tx_outs:
             output_sum += tx_out.amount
         return input_sum - output_sum
+    
+    def sig_hash(self, input_index: int) -> bytes:
+        s = int_to_little_endian(self.version, 4)
+        s += encode_varint(len(self.tx_ins))
+        
+        for i, tx_in in enumerate(self.tx_ins):
+            if i == input_index:
+                s += TxIn(prev_tx = tx_in.prev_tx,
+                          prev_index = tx_in.prev_index,
+                          script_sig = tx_in.script_pubkey(self.testnet),
+                          sequence = tx_in.sequence).serialize()
+            else:
+                s += TxIn(prev_tx = tx_in.prev_tx,
+                          prev_index = tx_in.prev_index,
+                          sequence = tx_in.sequence).serialize()
+                
+        s += encode_varint(len(self.tx_outs))
+        for tx_out in self.tx_outs:
+            s+= tx_out.serialize()
+        s += int_to_little_endian(self.locktime, 4)
+        s += int_to_little_endian(SIGHASH_ALL, 4)
+        h256 = hash256(s)
+        return int.from_bytes(h256, 'big')
+    
+    def verify_input(self, input_index: int) -> bool:
+        tx_in = self.tx_ins[input_index]
+        script_pubkey = tx_in.script_pubkey(self.testnet)
+        z = self.sig_hash(input_index)
+        combined = tx_in.script_sig + script_pubkey
+        return combined.evaluate(z)
+    
+    def verify(self) -> bool:
+        '''Verify this transaction'''
+        if self.fee < 0:
+            return False
+        for i in range(len(self.tx_ins)):
+            if not self.verify_input(i):
+                return False
+        return True
+    
+    def sign_input(self, input_index: int, private_key: PrivateKey) -> bool:
+        z = self.sig_hash(input_index)
+        der = private_key.sign(z).der()
+        sig = der + SIGHASH_ALL.to_bytes(1, 'big')
+        sec = private_key.point.sec()
+        script_sig = Script([sig, sec])
+        self.tx_ins[input_index].script_sig = script_sig
+        return self.verify_input(input_index)
+
+        
 
 class TxIn:
-    def __init__(self, prev_tx: bytes, prev_index: int, script_sig: bytes = None, sequence: int = 0xffffffff):
+    def __init__(self, prev_tx: bytes, prev_index: int, script_sig = None, sequence: int = 0xffffffff):
         '''The constructor for the TxIn class'''
         self.prev_tx = prev_tx
         self.prev_index = prev_index
