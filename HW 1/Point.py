@@ -52,7 +52,7 @@ class Point:
             s = (3 * self.x**2 + self.a) / (2 * self.y)
         
         # x1 != x2
-        if self.x != other.x:
+        elif self.x != other.x:
             s = (self.y - other.y) / (self.x - other.x)
         # x1 == x2
         else:
