@@ -16,6 +16,19 @@ class Script:
         else:
             self.cmds = cmds
 
+    def __repr__(self) -> str:
+        result = []
+        for cmd in self.cmds:
+            if type(cmd) == int:
+                if OP_CODE_NAMES.get(cmd):
+                    name = OP_CODE_NAMES.get(cmd)
+                else:
+                    name = 'OP_[{}]'.format(cmd)
+                result.append(name)
+            else:
+                result.append(cmd.hex())
+        return ' '.join(result)
+
     @classmethod
     def parse(cls, s: BytesIO) -> Script:
         length = read_varint(s)
@@ -61,7 +74,7 @@ class Script:
                     result += int_to_little_endian(77, 1) + int_to_little_endian(length, 2)
                 else:
                     raise ValueError('too long an cmd')
-            result += cmd
+                result += cmd
         return result
     
     def serialize(self) -> bytes:

@@ -185,7 +185,7 @@ class TxOut:
         self.script_pubkey = script_pubkey
     
     def __repr__(self) -> str:
-        return f'{self.amount}:{self.script_pubkey.hex()}'
+        return f'{self.amount}:{self.script_pubkey}'
     
     @classmethod
     def parse(cls, s: BytesIO) -> TxOut:
