@@ -83,9 +83,9 @@ class Tx:
                 script_sig = None
                 
             s += TxIn(prev_tx = tx_in.prev_tx,
-                          prev_index = tx_in.prev_index,
-                          script_sig = script_sig,
-                          sequence = tx_in.sequence).serialize()
+                      prev_index = tx_in.prev_index,
+                      script_sig = script_sig,
+                      sequence = tx_in.sequence).serialize()
                 
         s += encode_varint(len(self.tx_outs))
         for tx_out in self.tx_outs:
@@ -112,7 +112,7 @@ class Tx:
     
     def verify(self) -> bool:
         '''Verify this transaction'''
-        if self.fee < 0:
+        if self.fee() < 0:
             return False
         for i in range(len(self.tx_ins)):
             if not self.verify_input(i):
@@ -191,7 +191,7 @@ class TxIn:
     
 class TxOut:
 
-    def __init__(self, amount: int, script_pubkey: bytes = None):
+    def __init__(self, amount: int, script_pubkey: Script = None):
         '''The constructor for the TxOut class'''
         self.amount = amount
         self.script_pubkey = script_pubkey
@@ -224,14 +224,14 @@ class TxFetcher:
     @classmethod
     def get_url(cls, testnet: bool = False) -> str:
         if testnet:
-            return 'https://blockstream.info/testnet/api/'
+            return 'http://testnet.programmingbitcoin.com'
         else:
-            return 'https://blockstream.info/api/'
+            return 'http://mainnet.programmingbitcoin.com'
         
     @classmethod
     def fetch(cls, tx_id: str, testnet: bool = False, fresh: bool = False) -> Tx:
         if fresh or (tx_id not in cls.cache):
-            url = f'{cls.get_url(testnet)}/tx/{tx_id}/hex'
+            url = f'{cls.get_url(testnet)}/tx/{tx_id}.hex'
             response = requests.get(url)
 
             try:
@@ -240,7 +240,7 @@ class TxFetcher:
                 raise ValueError(f'Unexpected response: {response.text}')
             
             if raw[4] == 0:
-                raw = raw[:4] + raw[5:]
+                raw = raw[:4] + raw[6:]
                 tx = Tx.parse(BytesIO(raw), testnet)
                 tx.locktime = little_endian_to_int(raw[-4:])
             else:

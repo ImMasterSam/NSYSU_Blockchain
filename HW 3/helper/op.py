@@ -164,6 +164,9 @@ def op_equal(stack: list):
     return True
 
 
+def op_equalverify(stack):
+    return op_equal(stack) and op_verify(stack)
+
 
 def op_add(stack: list):
     if len(stack) < 2:
@@ -263,6 +266,7 @@ OP_CODE_FUNCTIONS = {
     105: op_verify,
     118: op_dup,
     135: op_equal,
+    136: op_equalverify,
     147: op_add,
     148: op_sub,
     149: op_mul,
@@ -293,6 +297,7 @@ OP_CODE_NAMES = {
     105: 'OP_VERIFY',
     118: 'OP_DUP',
     135: 'OP_EQUAL',
+    136: 'OP_EQUALVERIFY',
     147: 'OP_ADD',
     148: 'OP_SUB',
     149: 'OP_MUL',

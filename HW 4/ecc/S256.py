@@ -82,19 +82,19 @@ class S256Point(Point):
         else:
             is_even = sec_bin[0] == 2
             x = int.from_bytes(sec_bin[1:], 'big')
-            alpha: S256Field = x**3 + S256Field(B)
+            alpha: S256Field = S256Field(x)**3 + S256Field(B)
             beta: S256Field  = alpha.sqrt()
 
             if beta.num % 2 == 0:
                 if is_even:
-                    return S256Point(x, beta)
+                    return S256Point(x, beta.num)
                 else:
-                    return S256Point(x, S256Field(P - beta.num))
+                    return S256Point(x, P - beta.num)
             else:
                 if is_even:
-                    return S256Point(x, S256Field(P - beta.num))
+                    return S256Point(x, P - beta.num)
                 else:
-                    return S256Point(x, beta)
+                    return S256Point(x, beta.num)
                 
     # Return the hash160 version for the public key
     def hash160(self, compressed = True) -> bytes:
@@ -137,8 +137,31 @@ class Signature:
         # if sbin has high bit, add a \x00
         if sbin[0] & 0x80:
             sbin = b'\x00' + sbin
-        result += bytes([2, len(rbin)]) + sbin
+        result += bytes([2, len(sbin)]) + sbin
         return bytes([0x30, len(result)]) + result
+    
+    @classmethod
+    def parse(cls, signature_bin):
+        s = BytesIO(signature_bin)
+        compound = s.read(1)[0]
+        if compound != 0x30:
+            raise SyntaxError("Bad Signature")
+        length = s.read(1)[0]
+        if length + 2 != len(signature_bin):
+            raise SyntaxError("Bad Signature Length")
+        marker = s.read(1)[0]
+        if marker != 0x02:
+            raise SyntaxError("Bad Signature")
+        rlength = s.read(1)[0]
+        r = int.from_bytes(s.read(rlength), 'big')
+        marker = s.read(1)[0]
+        if marker != 0x02:
+            raise SyntaxError("Bad Signature")
+        slength = s.read(1)[0]
+        s = int.from_bytes(s.read(slength), 'big')
+        if len(signature_bin) != 6 + rlength + slength:
+            raise SyntaxError("Signature too long")
+        return cls(r, s)
     
     
 class PrivateKey:

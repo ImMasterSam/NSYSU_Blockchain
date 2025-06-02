@@ -63,18 +63,18 @@ class Script:
         result = b''
         for cmd in self.cmds:
             if isinstance(cmd, int):
-                result += cmd.to_bytes(1, 'little')
+                result += int_to_little_endian(cmd, 1)
             else:
                 length = len(cmd)
                 if length < 75:
                     result += int_to_little_endian(length, 1)
                 elif length > 75 and length < 0x100:
                     result += int_to_little_endian(76, 1) + int_to_little_endian(length, 1)
-                elif length > 0x100 and length < 520:
+                elif length > 0x100 and length <= 520:
                     result += int_to_little_endian(77, 1) + int_to_little_endian(length, 2)
                 else:
                     raise ValueError('too long an cmd')
-            result += cmd
+                result += cmd
         return result
     
     def serialize(self) -> bytes:
@@ -92,15 +92,19 @@ class Script:
                 operation = OP_CODE_FUNCTIONS[cmd]
                 if cmd in (99, 100):                # OP_IF, OP_NOTIF
                     if not operation(stack, cmds):
+                        print('OP_IF/OP_NOTIF failed')
                         return False
                 elif cmd in (107, 108):             # OP_TOALTSTACK, OP_FROMALTSTACK
                     if not operation(stack, altstack):
+                        print('OP_TOALTSTACK/OP_FROMALTSTACK failed')
                         return False
                 elif cmd in (172, 173, 174, 175):   # OP_CHECKSIG, OP_CHECKMULTISIG, OP_CHECKSIGVERIFY, OP_CHECKMULTISIGVERIFY
                     if not operation(stack, z):
+                        print('OP_CHECKSIG/OP_CHECKMULTISIG failed')
                         return False
                 else:
                     if not operation(stack):
+                        print(f'Operation {cmd} failed')
                         return False
             else:
                 stack.append(cmd)

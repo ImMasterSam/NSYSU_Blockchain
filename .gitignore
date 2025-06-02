@@ -2,3 +2,5 @@
 **/Screenshots/
 *.docx
 test.py
+request_test.py
+op_temp.py
